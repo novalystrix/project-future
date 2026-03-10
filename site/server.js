@@ -7,8 +7,21 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const ROOT = path.join(__dirname, '..');
 
-// Configure marked for nice rendering
-marked.setOptions({ gfm: true, breaks: true });
+// Configure marked with heading IDs for TOC anchor links
+const renderer = new marked.Renderer();
+renderer.heading = function({ tokens, depth }) {
+  const text = this.parser.parseInline(tokens);
+  const raw = tokens.map(t => t.raw || t.text || '').join('');
+  // Generate slug matching the markdown TOC anchor style
+  const slug = raw.toLowerCase()
+    .replace(/<[^>]*>/g, '')
+    .replace(/[—–]/g, '')           // remove em/en dashes  
+    .replace(/[^\w\s-]/g, '')       // remove other special chars
+    .replace(/\s/g, '-')            // each space → one hyphen (preserves double spaces as --)
+    .trim();
+  return `<h${depth} id="${slug}">${text}</h${depth}>`;
+};
+marked.setOptions({ gfm: true, breaks: true, renderer });
 
 function getFiles(dir) {
   const full = path.join(ROOT, dir);
@@ -27,6 +40,7 @@ function renderPage(title, body, back) {
 <meta name="robots" content="noindex, nofollow">
 <title>${title} — Project Future</title>
 <style>
+  html { scroll-behavior: smooth; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
