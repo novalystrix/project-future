@@ -199,8 +199,8 @@ ${buildSection('Thoughts', 'thoughts')}
 });
 
 // Section page (for subdirectories)
-app.get('/section/:dir(*)', (req, res) => {
-  const dir = req.params.dir;
+app.get('/section/*dir', (req, res) => {
+  const dir = Array.isArray(req.params.dir) ? req.params.dir.join('/') : req.params.dir;
   const full = path.join(ROOT, dir);
   if (!fs.existsSync(full) || !fs.statSync(full).isDirectory()) return res.status(404).send('Not found');
 
@@ -252,8 +252,8 @@ app.get('/section/:dir(*)', (req, res) => {
 });
 
 // Document pages (supports nested paths)
-app.get('/:dir(*)', (req, res) => {
-  const fullPath = req.params.dir;
+app.get('/*path', (req, res) => {
+  const fullPath = Array.isArray(req.params.path) ? req.params.path.join('/') : req.params.path;
   
   // Try to find the file - could be at any nesting level
   const filePath = path.join(ROOT, `${fullPath}.md`);
