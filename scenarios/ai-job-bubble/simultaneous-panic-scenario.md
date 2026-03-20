@@ -339,10 +339,11 @@ Before building the strategy, let's establish current conditions (March 2026 bas
 | **Water & Agritech (Israel focus)** | 5% | $2,500,000 | Netafim (private), IDE Technologies, water ETFs |
 | **Distressed Opportunities Reserve** | 8% | $4,000,000 | Cash earmarked for buying at the bottom — do NOT deploy early |
 | **Israeli Real Estate (strategic exits)** | Reduce to 5% | $2,500,000 | See real estate section below |
-| **Foreign Real Estate (income-producing)** | 5% | $2,500,000 | US/EU non-residential; agricultural land |
+| **Farmland & Agricultural Land** ⭐ | 7% | $3,500,000 | US farmland direct + platforms; water rights; can't be automated |
+| **Foreign Real Estate (non-agricultural)** | 3% | $1,500,000 | EU logistics/industrial; income-producing |
 | **Private Equity / Startup Reserve** | 5% | $2,500,000 | Israeli defense-tech, agritech; post-crash prices |
-| **Short Positions / Puts (hedges)** | 3% | $1,500,000 | SPY puts, IWM puts, real estate ETF shorts; defined risk |
-| **Miscellaneous / Buffer** | 3% | $1,500,000 | Holds/flexibility |
+| **Short Positions / Puts (hedges)** | 2% | $1,000,000 | SPY puts, IWM puts, real estate ETF shorts; defined risk |
+| **Miscellaneous / Buffer** | 1% | $500,000 | Flexibility |
 
 **Total: 100% / $50,000,000**
 
@@ -559,17 +560,48 @@ This deserves special attention.
 
 **Tax note**: Sale of primary residence has favorable treatment in Israel (2 transactions per 4 years exempt up to 4.8M NIS as of 2025 figures). Investment property sale: 25% on real gains. Consider your basis, duration, and tax year timing.
 
-#### Foreign Real Estate / Agricultural Land ($2,500,000)
+#### Farmland & Agricultural Land ($3,500,000) ⭐ KEY THESIS
 
-After selling Israeli investment properties, rotate some into:
+**This is one of the most important allocations in the entire portfolio.** Farmland is the ultimate anti-AI asset. Here's why:
 
-1. **US agricultural land** ($1M): Farmland has genuine scarcity. Food production still requires land. Returns are modest but stable. Access via AcreTrader or FarmTogether platforms, or direct purchase in heartland states.
+1. **AI cannot replace arable land.** No matter how intelligent agents become, food production requires physical soil, water, and sunlight. There is no digital substitute for a wheat field.
+2. **Historical outperformance in crises.** US farmland returned ~11% annually over the last 50 years with minimal volatility. During the 2008 crisis, farmland barely dipped while stocks lost 50%+. During the Great Depression, farmland (not farm *prices*) held value — you could eat what it produced.
+3. **Scarcity is increasing.** The world loses ~12 million hectares of productive farmland per year to urbanization, erosion, and climate change. Meanwhile population grows. The math is relentless.
+4. **Water rights are the hidden gem.** In the western US, water rights attached to agricultural land are increasingly the most valuable component. As data centers (which AI requires) compete for water and electricity, agricultural water rights appreciate. Bill Gates became the largest private farmland owner in America for exactly this reason.
+5. **Inflation hedge.** When money printing starts (which it will in the panic response), food prices rise. Farmland is a direct claim on food production.
+6. **Income-producing.** Unlike gold, farmland generates cash flow through crop leases (typically 3-5% annually on top of land appreciation).
 
-2. **Income-producing property in Germany/Netherlands** ($1M): European commercial real estate has already repriced post-COVID and post-rate hike. Quality logistics/light industrial in Germany near major transit hubs. Lower upside than pre-pandemic, but stable income.
+**Current prices (US)**:
+- National average: ~$5,000/acre
+- Quality farmland (Iowa, Illinois, Indiana): $10,000-15,000+/acre
+- California irrigated: $20,000-40,000/acre (includes water rights premium)
 
-3. **Cash reserve held in foreign real estate funds** ($500K): BREIT alternatives or European open-ended real estate funds for income + modest appreciation.
+**For an Israeli investor, the approach:**
 
-**What NOT to buy**: US suburban residential (same AI-threat dynamics as Israel), US office (already impaired), Israeli commercial real estate (tied to tech sector).
+| Vehicle | Amount | Details |
+|---------|--------|---------|
+| AcreTrader / FarmTogether (platforms) | $1,000,000 | Fractional farmland investing; low minimum ($15-25K per deal); diversified across US states and crop types. Returns: 3-5% cash yield + 3-8% appreciation. Illiquid (5-10 year holds). |
+| Direct US farmland purchase (Midwest) | $1,500,000 | 100-200 acres in Iowa/Illinois/Indiana. Lease to local farmer (3-5% cash return). Requires US LLC structure. Long-term hold. This is your "civilization still needs food" insurance. |
+| Gladstone Land (LAND) | $500,000 | Farmland REIT focused on permanent crops (berries, almonds, vegetables). Publicly traded, liquid. Lower return but easier to manage from Israel. |
+| Water-rights-holding companies | $500,000 | Cadiz Inc. (CDZI) — holds water rights in California's Mojave Desert. Orbia (ORBIA:BMV) — owns Netafim, the world's largest drip irrigation company (Israeli-founded). These are leveraged bets on water scarcity. |
+
+**Why not Israeli farmland?** Israel's agricultural sector is innovative but tiny. Land is expensive relative to productivity, and the geopolitical risk makes US farmland a better diversifier. Israeli agritech *companies* are excellent (covered in Water & Agritech section), but the *land itself* should be in a stable, large-scale agricultural economy.
+
+**The farmland thesis in the panic scenario specifically:**
+- When markets crash and people realize AI threatens all jobs, they will flock to assets that represent irreplaceable physical value
+- Farmland is the ultimate "you can't automate this" asset
+- In the deflation-then-inflation sequence (initial crash → money printing → inflation), farmland protects in both phases: it holds value in deflation (food is essential) and appreciates in inflation (food prices rise)
+- Farmland is also a *psychological* anchor — knowing you own productive land provides confidence to hold through the panic
+
+#### Foreign Real Estate — Non-Agricultural ($1,500,000)
+
+Beyond farmland, selective foreign real estate for income:
+
+1. **European logistics/light industrial** ($1M): German/Dutch warehouse properties near major transit hubs. European commercial real estate has already repriced post-COVID and post-rate-hike. Quality logistics assets are essential infrastructure (people still need physical goods delivered). Access via European open-ended real estate funds or direct.
+
+2. **Income-producing property reserve** ($500K): Held in BREIT alternatives or European open-ended real estate funds. Deploy opportunistically post-crash.
+
+**What NOT to buy**: US suburban residential (same AI-threat dynamics as Israel), US office (already impaired by remote work, further impaired by AI), Israeli commercial real estate (tied to tech sector), luxury/resort properties (discretionary spending collapses first).
 
 ---
 
