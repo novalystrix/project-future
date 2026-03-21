@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const { marked } = require('marked');
 const fs = require('fs');
 const path = require('path');
@@ -6,6 +7,81 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ROOT = path.join(__dirname, '..');
+
+// --- Password Protection ---
+const SITE_PASSWORD = process.env.SITE_PASSWORD || '51125112';
+const COOKIE_NAME = 'pf_auth';
+const COOKIE_SECRET = crypto.randomBytes(32).toString('hex');
+
+function makeToken() {
+  return crypto.createHmac('sha256', COOKIE_SECRET).update(SITE_PASSWORD).digest('hex');
+}
+
+function parseCookies(req) {
+  const header = req.headers.cookie || '';
+  const cookies = {};
+  header.split(';').forEach(c => {
+    const [k, ...v] = c.split('=');
+    if (k) cookies[k.trim()] = v.join('=').trim();
+  });
+  return cookies;
+}
+
+const LOGIN_PAGE = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Project Future — Login</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #e6edf3; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+  .login-box { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 40px 32px; width: 340px; text-align: center; }
+  .login-box h1 { font-size: 1.5em; margin-bottom: 8px; }
+  .login-box p { color: #8b949e; font-size: 0.9em; margin-bottom: 24px; }
+  input[type="password"] { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: #e6edf3; font-size: 1em; margin-bottom: 16px; outline: none; }
+  input[type="password"]:focus { border-color: #58a6ff; }
+  button { width: 100%; padding: 10px; border-radius: 8px; border: none; background: #238636; color: #fff; font-size: 1em; font-weight: 600; cursor: pointer; }
+  button:hover { background: #2ea043; }
+  .error { color: #f85149; font-size: 0.85em; margin-bottom: 12px; display: none; }
+</style>
+</head>
+<body>
+<div class="login-box">
+  <h1>🔮 Project Future</h1>
+  <p>Enter password to access</p>
+  <div class="error" id="err">Wrong password</div>
+  <form method="POST" action="/__login">
+    <input type="password" name="password" placeholder="Password" autofocus required>
+    <button type="submit">Enter</button>
+  </form>
+</div>
+</body>
+</html>`;
+
+app.use(express.urlencoded({ extended: false }));
+
+app.post('/__login', (req, res) => {
+  if (req.body.password === SITE_PASSWORD) {
+    res.setHeader('Set-Cookie', `${COOKIE_NAME}=${makeToken()}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000`);
+    return res.redirect(req.query.r || '/');
+  }
+  res.status(401).send(LOGIN_PAGE.replace('display: none', 'display: block'));
+});
+
+app.get('/__logout', (req, res) => {
+  res.setHeader('Set-Cookie', `${COOKIE_NAME}=; Path=/; HttpOnly; Max-Age=0`);
+  res.redirect('/');
+});
+
+// Auth middleware — check on every request
+app.use((req, res, next) => {
+  if (req.path === '/__login') return next();
+  const cookies = parseCookies(req);
+  if (cookies[COOKIE_NAME] === makeToken()) return next();
+  return res.status(401).send(LOGIN_PAGE);
+});
 
 // Configure marked with heading IDs for TOC anchor links
 const renderer = new marked.Renderer();
