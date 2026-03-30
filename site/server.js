@@ -3,18 +3,29 @@ const crypto = require('crypto');
 const { marked } = require('marked');
 const fs = require('fs');
 const path = require('path');
+const { OAuth2Client } = require('google-auth-library');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ROOT = path.join(__dirname, '..');
 
-// --- Password Protection ---
-const SITE_PASSWORD = process.env.SITE_PASSWORD || '51125112';
-const COOKIE_NAME = 'pf_auth';
-const COOKIE_SECRET = crypto.randomBytes(32).toString('hex');
+// --- Google OAuth Config ---
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const BASE_URL = process.env.BASE_URL || 'https://project-future.onrender.com';
+const REDIRECT_URI = `${BASE_URL}/auth/callback`;
 
-function makeToken() {
-  return crypto.createHmac('sha256', COOKIE_SECRET).update(SITE_PASSWORD).digest('hex');
+// Allowed emails (lowercase)
+const ALLOWED_EMAILS = [
+  'vaselin@gmail.com',
+  'mayaalpe@gmail.com',
+];
+
+const COOKIE_NAME = 'pf_session';
+const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+
+function makeSessionToken(email) {
+  return crypto.createHmac('sha256', SESSION_SECRET).update(email.toLowerCase()).digest('hex');
 }
 
 function parseCookies(req) {
@@ -22,12 +33,30 @@ function parseCookies(req) {
   const cookies = {};
   header.split(';').forEach(c => {
     const [k, ...v] = c.split('=');
-    if (k) cookies[k.trim()] = v.join('=').trim();
+    if (k) cookies[k.trim()] = decodeURIComponent(v.join('=').trim());
   });
   return cookies;
 }
 
-const LOGIN_PAGE = `<!DOCTYPE html>
+function getEmailFromCookie(req) {
+  const cookies = parseCookies(req);
+  const raw = cookies[COOKIE_NAME] || '';
+  // Format: email:hmac
+  const idx = raw.lastIndexOf(':');
+  if (idx === -1) return null;
+  const email = raw.substring(0, idx);
+  const hmac = raw.substring(idx + 1);
+  if (makeSessionToken(email) !== hmac) return null;
+  return email;
+}
+
+function setSessionCookie(res, email) {
+  const token = `${email}:${makeSessionToken(email)}`;
+  res.setHeader('Set-Cookie', `${COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000`);
+}
+
+// --- Login page ---
+const loginPage = (error) => `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -40,47 +69,87 @@ const LOGIN_PAGE = `<!DOCTYPE html>
   .login-box { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 40px 32px; width: 340px; text-align: center; }
   .login-box h1 { font-size: 1.5em; margin-bottom: 8px; }
   .login-box p { color: #8b949e; font-size: 0.9em; margin-bottom: 24px; }
-  input[type="password"] { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: #e6edf3; font-size: 1em; margin-bottom: 16px; outline: none; }
-  input[type="password"]:focus { border-color: #58a6ff; }
-  button { width: 100%; padding: 10px; border-radius: 8px; border: none; background: #238636; color: #fff; font-size: 1em; font-weight: 600; cursor: pointer; }
-  button:hover { background: #2ea043; }
-  .error { color: #f85149; font-size: 0.85em; margin-bottom: 12px; display: none; }
+  .google-btn {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid #30363d;
+    background: #fff; color: #3c4043; font-size: 0.95em; font-weight: 500;
+    cursor: pointer; text-decoration: none; transition: background 0.2s;
+  }
+  .google-btn:hover { background: #f8f9fa; }
+  .google-btn svg { flex-shrink: 0; }
+  .error { color: #f85149; font-size: 0.85em; margin-bottom: 16px; }
+  .restricted { color: #8b949e; font-size: 0.8em; margin-top: 20px; }
 </style>
 </head>
 <body>
 <div class="login-box">
   <h1>🔮 Project Future</h1>
-  <p>Enter password to access</p>
-  <div class="error" id="err">Wrong password</div>
-  <form method="POST" action="/__login">
-    <input type="password" name="password" placeholder="Password" autofocus required>
-    <button type="submit">Enter</button>
-  </form>
+  <p>Sign in to access research & scenarios</p>
+  ${error ? `<div class="error">${error}</div>` : ''}
+  <a class="google-btn" href="/auth/login">
+    <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 002.38-5.88c0-.57-.05-.66-.15-1.17z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 01-7.18-2.54H1.83v2.07A8 8 0 008.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 010-3.04V5.41H1.83a8 8 0 000 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 001.83 5.4L4.5 7.49a4.77 4.77 0 014.48-3.31z"/></svg>
+    Sign in with Google
+  </a>
+  <p class="restricted">Access restricted to invited users only.</p>
 </div>
 </body>
 </html>`;
 
 app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
 
-app.post('/__login', (req, res) => {
-  if (req.body.password === SITE_PASSWORD) {
-    res.setHeader('Set-Cookie', `${COOKIE_NAME}=${makeToken()}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000`);
-    return res.redirect(req.query.r || '/');
-  }
-  res.status(401).send(LOGIN_PAGE.replace('display: none', 'display: block'));
+// Auth routes
+app.get('/auth/login', (req, res) => {
+  const oAuth2Client = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, REDIRECT_URI);
+  const url = oAuth2Client.generateAuthUrl({
+    access_type: 'online',
+    scope: ['email', 'profile'],
+    prompt: 'select_account',
+  });
+  res.redirect(url);
 });
 
-app.get('/__logout', (req, res) => {
+app.get('/auth/callback', async (req, res) => {
+  const { code, error } = req.query;
+  if (error || !code) {
+    return res.status(400).send(loginPage('Google sign-in was cancelled or failed.'));
+  }
+  try {
+    const oAuth2Client = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, REDIRECT_URI);
+    const { tokens } = await oAuth2Client.getToken(code);
+    oAuth2Client.setCredentials(tokens);
+
+    // Get user info
+    const ticket = await oAuth2Client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const email = (payload.email || '').toLowerCase();
+
+    if (!ALLOWED_EMAILS.includes(email)) {
+      return res.status(403).send(loginPage(`Access denied. ${email} is not an authorized user.`));
+    }
+
+    setSessionCookie(res, email);
+    res.redirect('/');
+  } catch (err) {
+    console.error('OAuth error:', err.message);
+    res.status(500).send(loginPage('Authentication failed. Please try again.'));
+  }
+});
+
+app.get('/auth/logout', (req, res) => {
   res.setHeader('Set-Cookie', `${COOKIE_NAME}=; Path=/; HttpOnly; Max-Age=0`);
   res.redirect('/');
 });
 
-// Auth middleware — check on every request
+// Auth middleware
 app.use((req, res, next) => {
-  if (req.path === '/__login') return next();
-  const cookies = parseCookies(req);
-  if (cookies[COOKIE_NAME] === makeToken()) return next();
-  return res.status(401).send(LOGIN_PAGE);
+  if (req.path.startsWith('/auth/')) return next();
+  const email = getEmailFromCookie(req);
+  if (email && ALLOWED_EMAILS.includes(email)) return next();
+  return res.status(401).send(loginPage());
 });
 
 // Configure marked with heading IDs for TOC anchor links
@@ -178,6 +247,9 @@ function renderPage(title, body, back) {
   .container { max-width: 720px; margin: 0 auto; padding: 24px 20px 60px; }
   .back { display: inline-block; margin-bottom: 20px; color: #58a6ff; text-decoration: none; font-size: 14px; }
   .back:hover { text-decoration: underline; }
+  .topbar { display: flex; justify-content: flex-end; padding: 12px 20px; border-bottom: 1px solid #21262d; }
+  .logout-btn { color: #8b949e; font-size: 0.8em; text-decoration: none; }
+  .logout-btn:hover { color: #e6edf3; }
   h1 { font-size: 1.8em; margin-bottom: 8px; color: #fff; border-bottom: 1px solid #30363d; padding-bottom: 12px; }
   h2 { font-size: 1.4em; margin-top: 32px; margin-bottom: 12px; color: #fff; border-bottom: 1px solid #21262d; padding-bottom: 8px; }
   h3 { font-size: 1.15em; margin-top: 24px; margin-bottom: 8px; color: #e6edf3; }
@@ -228,6 +300,7 @@ function renderPage(title, body, back) {
 </style>
 </head>
 <body>
+<div class="topbar"><a class="logout-btn" href="/auth/logout">Sign out</a></div>
 <div class="container">
 ${back ? `<a class="back" href="${typeof back === 'string' ? back : '/'}">← Back</a>` : ''}
 ${body}
@@ -245,13 +318,11 @@ app.get('/', (req, res) => {
 
     let html = `<div class="section-label">${label}</div>\n`;
 
-    // Top-level files
     for (const item of topFiles) {
       const preview = getPreview(path.join(ROOT, dir, item.file));
       html += `<a class="card" href="${item.route}"><h3>${prettyName(item.name)}</h3><p>${preview}</p></a>\n`;
     }
 
-    // Subdirectories as expandable sections
     for (const sub of subdirs) {
       const subPath = `${dir}/${sub}`;
       const subFiles = getFilesRecursive(subPath, subPath);
@@ -280,11 +351,9 @@ app.get('/section/*dir', (req, res) => {
   const full = path.join(ROOT, dir);
   if (!fs.existsSync(full) || !fs.statSync(full).isDirectory()) return res.status(404).send('Not found');
 
-  // Get all files in this directory
   const files = getFilesRecursive(dir, dir);
   if (!files.length) return res.status(404).send('Not found');
 
-  // Read README.md if it exists for section description
   let intro = '';
   const readmePath = path.join(full, 'README.md');
   if (fs.existsSync(readmePath)) {
@@ -292,7 +361,6 @@ app.get('/section/*dir', (req, res) => {
     intro = marked(readmeContent);
   }
 
-  // Group by subdirectory
   const groups = {};
   const topLevel = [];
   for (const f of files) {
@@ -330,17 +398,14 @@ app.get('/section/*dir', (req, res) => {
 // Document pages (supports nested paths)
 app.get('/*path', (req, res) => {
   const fullPath = Array.isArray(req.params.path) ? req.params.path.join('/') : req.params.path;
-  
-  // Try to find the file - could be at any nesting level
+
   const filePath = path.join(ROOT, `${fullPath}.md`);
   if (!fs.existsSync(filePath)) return res.status(404).send('Not found');
-  
-  // Security: ensure we're within allowed directories
+
   const resolved = path.resolve(filePath);
   const rootResolved = path.resolve(ROOT);
   if (!resolved.startsWith(rootResolved)) return res.status(403).send('Forbidden');
-  
-  // Only serve from allowed top-level dirs
+
   const topDir = fullPath.split('/')[0];
   if (!['research', 'scenarios', 'thoughts'].includes(topDir)) return res.status(404).send('Not found');
 
@@ -348,14 +413,13 @@ app.get('/*path', (req, res) => {
   const html = marked(md);
   const name = fullPath.split('/').pop();
   const title = prettyName(name);
-  
-  // Back link goes to section page if nested, or home if top-level
+
   const parts = fullPath.split('/');
   let backLink = '/';
   if (parts.length > 2) {
     backLink = '/section/' + parts.slice(0, -1).join('/');
   }
-  
+
   res.send(renderPage(title, html, backLink));
 });
 
